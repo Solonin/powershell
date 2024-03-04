@@ -1,0 +1,13 @@
+# пустой ласт логон
+Get-ADUser -Properties pwdLastSet, Description, PasswordNeverExpires, LastLogonTimeStamp -Filter {(LastLogonTimeStamp -notlike "*") -and (GivenName -ne "VCS") -and (GivenName -ne "VDI")}  -SearchBase ‘dc=asi,dc=ru’|`
+ ?{$_.Enabled –eq $True} | ?{$_.name –notlike 'HealthMailbox*'} | ?{$_.DistinguishedName –notlike '*Шуя*'} | select SamAccountName, PasswordNeverExpires,Name, Description, @{name ="pwdLastSet"; expression={[datetime]::FromFileTime($_.pwdLastSet)}},`
+  @{name ="LastLogonTimeStamp"; expression={[datetime]::FromFileTime($_.LastLogonTimeStamp)}},GivenName,Surname, DistinguishedName |  Sort LastLogonTimeStamp | Export-CSV c:\ps\inactive_users.csv -Encoding UTF8
+
+
+#пустой employeeid
+Get-ADUser -Properties pwdLastSet, Description, PasswordNeverExpires, employeeid, LastLogonTimeStamp -Filter {(LastLogonTimeStamp -like "*") -and (employeeid -notlike "*") -and (GivenName -ne "VCS")}  -SearchBase ‘dc=asi,dc=ru’|`
+ ?{$_.Enabled –eq $True} | ?{$_.name –notlike 'HealthMailbox*'} | select SamAccountName, PasswordNeverExpires,Name, Description, @{name ="pwdLastSet"; expression={[datetime]::FromFileTime($_.pwdLastSet)}},`
+  @{name ="LastLogonTimeStamp"; expression={[datetime]::FromFileTime($_.LastLogonTimeStamp)}},GivenName,Surname, DistinguishedName  |  Sort LastLogonTimeStamp | Out-GridView
+
+
+| Export-CSV c:\ps\noemployeeid_users.csv -Encoding UTF8
