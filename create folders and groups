@@ -1,0 +1,200 @@
+
+#--- 
+#! задайте переменные !!
+#---
+# имя папки
+$newpapka = "папка0403d"
+# имя группы
+$newgroup = "papka0403d"
+# имя родительской папки
+$parentpapka = "Departments\TestFolderAccess"
+# имя корневой группы
+$rootgroup = "TestFolderAccess"
+# имя владельца 
+$manager = "ssolonin"
+
+# ----
+
+
+function Get-FormStringInput {
+    Param(
+        [Parameter(Mandatory = $true, Position = 0)] $dialogTitle,
+        [Parameter(Mandatory = $true, Position = 1)] $dialogTitle2,
+        [Parameter(Mandatory = $true, Position = 2)] $dialogTitle3,
+        [Parameter(Position = 3)] $defaultValue 
+    )
+
+    [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+    [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")     
+
+    $defaultValue = "default"
+
+    $label = New-Object System.Windows.Forms.Label
+    $label.size = "600,30"
+    $label.Location = New-Object System.Drawing.Point(10, 10)
+    $label.Text = "Проверьте правильность введенных данных:"
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $label.Font = $Font
+
+    $label2 = New-Object System.Windows.Forms.Label
+    $label2.size = "600,30"
+    $label2.Location = New-Object System.Drawing.Point(10, 50)
+    $label2.Text = "Новая папка: " + $dialogTitle
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $label2.Font = $Font
+
+    $label3 = New-Object System.Windows.Forms.Label
+    $label3.size = "600,30"
+    $label3.Location = New-Object System.Drawing.Point(10, 80)
+    $label3.Text = "Новая группа RO: " + $dialogTitle2
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $label3.Font = $Font
+
+    $label4 = New-Object System.Windows.Forms.Label
+    $label4.size = "600,30"
+    $label4.Location = New-Object System.Drawing.Point(10, 110)
+    $label4.Text = "Новая группа RW: " + $dialogTitle3
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $label4.Font = $Font
+
+    $textBox = New-Object System.Windows.Forms.TextBox
+    $textBox.size = "600,50"
+    $textBox.Location = New-Object System.Drawing.Point(10, 60)
+    $Font = New-Object System.Drawing.Font("Times New Roman", 15)
+    $textBox.Font = $Font
+    $textBox.Text = $defaultValue
+
+    #-----------------------------------------------------------------------
+    # Add an OK button
+    #-----------------------------------------------------------------------
+    $ActionButtonHeight = 40
+    $ActionButtonY = 240
+    $OKButton = New-Object System.Windows.Forms.Button
+    $OKButton.Location = "130,$ActionButtonY"
+    $OKButton.Size = "100,$ActionButtonHeight" 
+    $OKButton.Text = 'OK'
+    $OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+ 
+    #-----------------------------------------------------------------------
+    # Add an cancel button
+    #----------------------------------------------------------------------
+    $CancelButton = New-Object System.Windows.Forms.Button
+    $CancelButton.Location = "255,$ActionButtonY"
+    $CancelButton.Size = "100,$ActionButtonHeight"
+    $CancelButton.Text = "Cancel"
+    $CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+
+    $Form = New-Object System.Windows.Forms.Form
+    $Form.width = $textBox.size.Width + 50
+    $Form.height = $OKButton.Location.Y + $OKButton.Height + 160
+    $Form.Text = "Проверьте правильность введенных данных"
+    $Form.Topmost = $true
+    $Form.StartPosition = "CenterScreen"
+ 
+    #-----------------------------------------------------------------------
+    # Set the font of the text to be used within the form
+    #-----------------------------------------------------------------------
+    $Font = New-Object System.Drawing.Font("Times New Roman", 10)
+    $Form.Font = $Font
+ 
+    #-----------------------------------------------------------------------
+    # Add all the Form controls on one line 
+    #-----------------------------------------------------------------------
+    #$form.Controls.AddRange(@($label, $textBox, $OKButton, $CancelButton))
+    $form.Controls.AddRange(@($label, $label2, $label3, $label4, $OKButton, $CancelButton))
+    
+    # Assign the Accept and Cancel options in the form to the corresponding buttons
+    $form.AcceptButton = $OKButton
+    $form.CancelButton = $CancelButton
+ 
+    #-----------------------------------------------------------------------
+    # Activate the form
+    #-----------------------------------------------------------------------
+    $form.Add_Shown( { $form.Activate() })    
+    
+    #-----------------------------------------------------------------------
+    # Get the results from the button click
+    #-----------------------------------------------------------------------
+    $dialogResult = $form.ShowDialog()
+ 
+    #-----------------------------------------------------------------------
+    # If the OK button is selected
+    #-----------------------------------------------------------------------
+    if ($dialogResult -eq "OK") {
+        return "Pressing OK button" 
+        
+    }
+    else {
+        throw "Execution was cencelled by the user"
+    }
+}
+
+$rootgroupRO = "FS_" + $rootgroup + "_RO"
+
+$rootpapka = "\\fs-02\"
+$parentpapka = $rootpapka + $parentpapka + "\"
+
+$newpapka = $parentpapka + $newpapka
+$newgroup = $rootgroup + "_" + $newgroup
+
+#2 уровень папок
+#группа на чтение
+
+$descr = "Группа доступа в папку " + $newpapka + " на чтение"
+$newgroupRO = "FS_" + $newgroup + "_RO"
+
+#группа на запись
+
+$descrRW = "Группа доступа в папку " + $newpapka + " на запись"
+$newgroupRW = "FS_" + $newgroup + "_RW"
+
+Get-FormStringInput $newpapka $newgroupRO $newgroupRW
+
+
+New-ADGroup $newgroupRO -Path 'OU=Test,OU=Groups,OU=FS,OU=Resources,DC=test,DC=ru' -GroupScope DomainLocal `
+-Description $descr -PassThru -Verbose -ManagedBy $manager
+
+New-ADGroup $newgroupRW -Path 'OU=Test,OU=Groups,OU=FS,OU=Resources,DC=test,DC=ru' -GroupScope DomainLocal `
+-Description $descrRW -PassThru -Verbose -ManagedBy $manager
+
+
+#пауза в работе скрипта для репликации
+
+Start-Sleep -Seconds 1
+
+#добавляем членство групп
+
+Add-ADGroupMember -Identity $rootgroupRO -Members $newgroupRO
+Add-ADGroupMember -Identity $rootgroupRO -Members $newgroupRW
+
+
+#делаем папку
+
+if (!(Test-Path -Path $newpapka))
+{
+    New-Item -Path $newpapka -ItemType Directory
+
+    Get-Item -Path $newpapka | Disable-NTFSAccessInheritance
+
+    Get-Item $newpapka | Get-NTFSAccess | Where-Object -FilterScript { $_.Account.accountname -like "TEST*"} | Remove-NTFSAccess    
+
+
+#накидываем доступы
+
+#на чтение
+#FS_Directors_RO
+Add-NTFSAccess -Path $newpapka -Account 'ASI\FS_Directors_RO' -AccessRights ReadAndExecute -PassThru
+
+#на чтение
+#$newgroupRO
+$newgroupRO = 'ASI\' + $newgroupRO
+Add-NTFSAccess -Path $newpapka -Account $newgroupRO -AccessRights ReadAndExecute -PassThru
+
+#на запись
+#$newgroupRW
+$newgroupRW = 'ASI\' + $newgroupRW
+Add-NTFSAccess -Path $newpapka -Account $newgroupRW -AccessRights Modify -PassThru
+}
+
+Get-Item $newpapka | Get-NTFSAccess | Out-GridView
+
