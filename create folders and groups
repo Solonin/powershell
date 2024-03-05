@@ -3,9 +3,9 @@
 #! задайте переменные !!
 #---
 # имя папки
-$newpapka = "папка0403d"
+$newpapka = "папка0503c"
 # имя группы
-$newgroup = "papka0403d"
+$newgroup = "papka0503c"
 # имя родительской папки
 $parentpapka = "Departments\TestFolderAccess"
 # имя корневой группы
@@ -21,7 +21,8 @@ function Get-FormStringInput {
         [Parameter(Mandatory = $true, Position = 0)] $dialogTitle,
         [Parameter(Mandatory = $true, Position = 1)] $dialogTitle2,
         [Parameter(Mandatory = $true, Position = 2)] $dialogTitle3,
-        [Parameter(Position = 3)] $defaultValue 
+        [Parameter(Mandatory = $true, Position = 3)] $dialogTitle4,
+        [Parameter(Position = 4)] $defaultValue 
     )
 
     [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
@@ -56,6 +57,13 @@ function Get-FormStringInput {
     $label4.Text = "Новая группа RW: " + $dialogTitle3
     $Font = New-Object System.Drawing.Font("Times New Roman", 12)
     $label4.Font = $Font
+
+    $label5 = New-Object System.Windows.Forms.Label
+    $label5.size = "600,30"
+    $label5.Location = New-Object System.Drawing.Point(10, 140)
+    $label5.Text = "Ответственный: " + $dialogTitle4
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $label5.Font = $Font
 
     $textBox = New-Object System.Windows.Forms.TextBox
     $textBox.size = "600,50"
@@ -101,7 +109,7 @@ function Get-FormStringInput {
     # Add all the Form controls on one line 
     #-----------------------------------------------------------------------
     #$form.Controls.AddRange(@($label, $textBox, $OKButton, $CancelButton))
-    $form.Controls.AddRange(@($label, $label2, $label3, $label4, $OKButton, $CancelButton))
+    $form.Controls.AddRange(@($label, $label2, $label3, $label4, $label5, $OKButton, $CancelButton))
     
     # Assign the Accept and Cancel options in the form to the corresponding buttons
     $form.AcceptButton = $OKButton
@@ -148,7 +156,10 @@ $newgroupRO = "FS_" + $newgroup + "_RO"
 $descrRW = "Группа доступа в папку " + $newpapka + " на запись"
 $newgroupRW = "FS_" + $newgroup + "_RW"
 
-Get-FormStringInput $newpapka $newgroupRO $newgroupRW
+Get-FormStringInput $newpapka $newgroupRO $newgroupRW $manager
+
+if ( (Get-FormStringInput $newpapka $newgroupRO $newgroupRW $manager) -eq 'Pressing OK button' ) {
+ 
 
 
 New-ADGroup $newgroupRO -Path 'OU=Test,OU=Groups,OU=FS,OU=Resources,DC=test,DC=ru' -GroupScope DomainLocal `
@@ -183,18 +194,19 @@ if (!(Test-Path -Path $newpapka))
 
 #на чтение
 #FS_Directors_RO
-Add-NTFSAccess -Path $newpapka -Account 'ASI\FS_Directors_RO' -AccessRights ReadAndExecute -PassThru
+Add-NTFSAccess -Path $newpapka -Account 'TEST\FS_Directors_RO' -AccessRights ReadAndExecute -PassThru
 
 #на чтение
 #$newgroupRO
-$newgroupRO = 'ASI\' + $newgroupRO
+$newgroupRO = 'TEST\' + $newgroupRO
 Add-NTFSAccess -Path $newpapka -Account $newgroupRO -AccessRights ReadAndExecute -PassThru
 
 #на запись
 #$newgroupRW
-$newgroupRW = 'ASI\' + $newgroupRW
+$newgroupRW = 'TEST\' + $newgroupRW
 Add-NTFSAccess -Path $newpapka -Account $newgroupRW -AccessRights Modify -PassThru
 }
 
 Get-Item $newpapka | Get-NTFSAccess | Out-GridView
 
+}
